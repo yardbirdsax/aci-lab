@@ -18,6 +18,29 @@ resource azurerm_storage_share share {
   storage_account_name = azurerm_storage_account.storage_account.name
 }
 
+resource azurerm_eventhub_namespace eventhub_namespace {
+  name = azurerm_resource_group.resource_group.name
+  resource_group_name = azurerm_resource_group.resource_group.name
+  sku = "Standard"
+  location = azurerm_resource_group.resource_group.location
+}
+
+resource azurerm_eventhub eventhub {
+  name = "logs"
+  namespace_name = azurerm_eventhub_namespace.eventhub_namespace.name
+  resource_group_name = azurerm_resource_group.resource_group.name
+  message_retention = 1
+  partition_count = 1
+}
+
+resource azurerm_eventhub_authorization_rule eventhub_auth {
+  name = "log_sender"
+  eventhub_name = azurerm_eventhub.eventhub.name
+  namespace_name = azurerm_eventhub_namespace.eventhub_namespace.name
+  resource_group_name = azurerm_resource_group.resource_group.name
+  send = true
+}
+
 module aci_container_group {
   providers = {
     azurerm = azurerm
@@ -62,7 +85,23 @@ module aci_container_group {
       commands = [
         "filebeat",
         "-E",
-        "output.console.enabled=true",
+        "output.kafka.enabled=true",
+        "-E",
+        "output.kafka.hosts=[${azurerm_eventhub_namespace.eventhub_namespace.name}.servicebus.windows.net:9093]",
+        "-E",
+        "output.kafka.topic=logs",
+        "-E",
+        "output.kafka.version=2.0.0",
+        "-E",
+        "output.kafka.ssl.enabled=true",
+        "-E",
+        "output.kafka.username=$ConnectionString",
+        "-E",
+        "output.kafka.password=${azurerm_eventhub_authorization_rule.eventhub_auth.primary_connection_string}",
+        "-E",
+        "output.kafka.compression=none",
+        # "-E",
+        # "output.console.enabled=true",
         "-E",
         "output.elasticsearch.enabled=false",
         "-e",
@@ -84,6 +123,12 @@ module aci_container_group {
       ]
     }
   ]
+}
 
-  
+output aci_dns_name {
+  value = module.aci_container_group.aci_dns_name
+}
+
+output aci_ip_address {
+  value = module.aci_container_group.aci_ip_address
 }

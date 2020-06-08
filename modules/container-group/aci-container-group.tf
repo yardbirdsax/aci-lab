@@ -37,3 +37,11 @@ resource azurerm_container_group container_group {
     }
   }
 }
+
+output aci_dns_name {
+  value = azurerm_container_group.container_group.fqdn
+}
+
+output aci_ip_address {
+  value = azurerm_container_group.container_group.ip_address
+}
