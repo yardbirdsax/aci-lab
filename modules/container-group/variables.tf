@@ -41,5 +41,13 @@ variable container_definitions {
       protocol = string
     }))
     environment_variables = map(string)
+    commands = list(string),
+    volumes = list(object({
+      name = string
+      mount_path = string
+      storage_account_name = string
+      storage_account_key = string
+      share_name = string
+    }))
   }))
 }

@@ -14,7 +14,19 @@ resource azurerm_container_group container_group {
       cpu = container.value["cpu"]
       memory = container.value["memory"]
       environment_variables = container.value["environment_variables"]
-      
+      commands = container.value["commands"]
+
+      dynamic "volume" {
+        for_each = container.value.volumes
+        content {
+          name = volume.value.name
+          mount_path = volume.value.mount_path
+          storage_account_name = volume.value.storage_account_name
+          storage_account_key = volume.value.storage_account_key
+          share_name = volume.value.share_name
+        }
+      }
+
       dynamic "ports" {
         for_each = container.value.ports
         content {
